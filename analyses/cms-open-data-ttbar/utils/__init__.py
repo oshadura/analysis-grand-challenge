@@ -17,7 +17,51 @@ def get_client(af="coffea_casa"):
         from dask.distributed import Client
 
         client = Client("tls://localhost:8786")
+        
+        client.restart()
+        
+    elif af == "coffea_casa_manual":
+        from coffea_casa import CoffeaCasaCluster
+        from distributed import Client
+        from distributed.security import Security
 
+        security = Security(require_encryption=True,
+                    tls_ca_file='/etc/cmsaf-secrets/ca.pem',
+                    tls_client_cert='/etc/cmsaf-secrets/hostcert.pem',
+                    tls_client_key='/etc/cmsaf-secrets/hostcert.pem',
+                    tls_scheduler_cert='/etc/cmsaf-secrets/hostcert.pem',
+                    tls_scheduler_key='/etc/cmsaf-secrets/hostcert.pem',
+                    tls_worker_cert='/etc/cmsaf-secrets/hostcert.pem',
+                    tls_worker_key='/etc/cmsaf-secrets/hostcert.pem')
+
+
+        cluster = CoffeaCasaCluster(cores=2,
+                            memory="7 GiB", 
+                            protocol = 'tls://',
+                            security = security,
+                            log_directory = 'logs',
+                            #silence_logs = 'DEBUG',
+                            scheduler_options = 
+                            {
+                                'port': 8786,
+                                'dashboard_address': '8787',
+                                'protocol': 'tls',
+                                'external_address': 'tls://oksana-2eshadura-40cern-2ech.dask.casaopen.af.uchicago.edu:8786'
+                            },
+                            job_extra = {'universe': 'docker',
+                                          'docker_image': "hub.opensciencegrid.org/usatlas/cc-analysis-ubuntu:2022.06.28",
+                                          'container_service_names': 'dask',
+                                          'dask_container_port': 8786,
+                                          'transfer_input_files': '/etc/cmsaf-secrets/ca.pem, /etc/cmsaf-secrets/hostcert.pem, /etc/cmsaf-secrets/xcache_token',
+                                          'encrypt_input_files': '/etc/cmsaf-secrets/ca.pem, /etc/cmsaf-secrets/hostcert.pem, /etc/cmsaf-secrets/xcache_token',
+                                          'transfer_output_files': '',
+                                          'when_to_transfer_output': 'ON_EXIT',
+                                          'should_transfer_files': 'YES',
+                                          'Stream_Output': 'False',
+                                          'Stream_Error': 'False',
+                                          '+DaskSchedulerAddress': '"tls://oksana-2eshadura-40cern-2ech.dask.casaopen.af.uchicago.edu:8786"'})
+        cluster.scale(50)
+        client = Client(cluster, security=security)
     elif af == "EAF":
         from lpcdaskgateway import LPCGateway
 
@@ -51,7 +95,7 @@ def set_style():
     plt.rcParams['text.color'] = "222222"
 
 
-def construct_fileset(n_files_max_per_sample, use_xcache=False):
+def construct_fileset(n_files_max_per_sample, use_xcache=False, use_local=False):
     # using https://atlas-groupdata.web.cern.ch/atlas-groupdata/dev/AnalysisTop/TopDataPreparation/XSection-MC15-13TeV.data
     # for reference
     # x-secs are in pb
@@ -65,7 +109,7 @@ def construct_fileset(n_files_max_per_sample, use_xcache=False):
     }
 
     # list of files
-    with open("ntuples.json") as f:
+    with open("ntuples_merged.json") as f:
         file_info = json.load(f)
 
     # process into "fileset" summarizing all info
@@ -82,6 +126,8 @@ def construct_fileset(n_files_max_per_sample, use_xcache=False):
             file_paths = [f["path"] for f in file_list]
             if use_xcache:
                 file_paths = [f.replace("https://xrootd-local.unl.edu:1094", "root://red-xcache1.unl.edu") for f in file_paths]
+            if use_local:
+                file_paths = [f.replace("https://xrootd-local.unl.edu:1094//store/user/", "/data/alheld/") for f in file_paths]
             nevts_total = sum([f["nevts"] for f in file_list])
             metadata = {"process": process, "variation": variation, "nevts": nevts_total, "xsec": xsec_info[process]}
             fileset.update({f"{process}__{variation}": {"files": file_paths, "metadata": metadata}})
