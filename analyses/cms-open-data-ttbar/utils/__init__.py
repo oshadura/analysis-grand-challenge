@@ -16,7 +16,7 @@ def get_client(af="coffea_casa"):
     if af == "coffea_casa":
         from dask.distributed import Client
 
-        client = Client("tls://localhost:8786")
+        client = Client("tcp://127.0.0.1:42839")
 
     elif af == "EAF":
         from lpcdaskgateway import LPCGateway
