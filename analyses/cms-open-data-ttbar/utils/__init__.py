@@ -46,10 +46,10 @@ def get_client(af="coffea_casa"):
                                 'port': 8786,
                                 'dashboard_address': '8787',
                                 'protocol': 'tls',
-                                'external_address': 'tls://oksana-2eshadura-40cern-2ech.dask.casaopen.af.uchicago.edu:8786'
+                                'external_address': 'tls://oksana-2eshadura-40cern-2ech.dask.coffea-opendata.casa:8786'
                             },
                             job_extra = {'universe': 'docker',
-                                          'docker_image': "hub.opensciencegrid.org/usatlas/cc-analysis-ubuntu:2022.06.28",
+                                          'docker_image': "hub.opensciencegrid.org/coffea-casa/cc-analysis-ubuntu:2022.09.14",
                                           'container_service_names': 'dask',
                                           'dask_container_port': 8786,
                                           'transfer_input_files': '/etc/cmsaf-secrets/ca.pem, /etc/cmsaf-secrets/hostcert.pem, /etc/cmsaf-secrets/xcache_token',
@@ -59,8 +59,8 @@ def get_client(af="coffea_casa"):
                                           'should_transfer_files': 'YES',
                                           'Stream_Output': 'False',
                                           'Stream_Error': 'False',
-                                          '+DaskSchedulerAddress': '"tls://oksana-2eshadura-40cern-2ech.dask.casaopen.af.uchicago.edu:8786"'})
-        cluster.scale(50)
+                                          '+DaskSchedulerAddress': '"tls://oksana-2eshadura-40cern-2ech.dask.coffea-opendata.casa:8786"'})
+        cluster.scale(40)
         client = Client(cluster, security=security)
     elif af == "EAF":
         from lpcdaskgateway import LPCGateway
